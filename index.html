@@ -1,38 +1,44 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exercices Comptabilité - Conditions de Vente</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-        .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        /* Suppression des flèches dans les input number pour un design plus propre */
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-    </style>
+    <title>Comptabilité 4e - Conditions de Vente</title>
     
+    <!-- Import Map pour la résolution des modules ES par le navigateur -->
     <script type="importmap">
     {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
-      }
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client"
+        }
     }
     </script>
+
+    <!-- Babel Standalone pour la transpilation JSX au runtime -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Framework CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        input:focus, textarea:focus { outline: none; border-color: #6366f1; ring: 2px; ring-color: #e0e7ff; }
+    </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <script type="module">
+    <!-- Script avec type text/babel et data-type module pour combiner JSX et Imports ESM -->
+    <script type="text/babel" data-type="module">
         import React, { useState, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
 
-        // --- DATA ---
+        // --- DONNÉES DES EXERCICES ---
         const analysisExercises = [
             {
                 id: 1,
@@ -97,23 +103,24 @@
             }
         ];
 
-        // --- COMPONENTS ---
+        // --- COMPOSANTS ---
 
         const AnalysisExercise = ({ data }) => {
             const [userAnswers, setUserAnswers] = useState({});
             const [submitted, setSubmitted] = useState({});
 
-            const toggleSubmit = (id) => setSubmitted(prev => ({ ...prev, [id]: !prev[id] }));
+            const toggleSubmit = (id) => setSubmitted(p => ({ ...p, [id]: !p[id] }));
 
             return (
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-10 animate-fadeIn">
-                    <div className="bg-amber-600 px-6 py-4 text-white font-bold text-xl flex items-center gap-2">
-                        <span>🔍</span> {data.title}
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-12 animate-fadeIn">
+                    <div className="bg-amber-600 px-6 py-4 text-white flex items-center gap-2">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <h2 className="text-xl font-bold">{data.title}</h2>
                     </div>
                     <div className="p-6">
-                        <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-5 mb-8">
-                            <h3 className="text-center font-bold text-lg mb-4 underline uppercase text-amber-900 tracking-wide">{data.conditions.name} - CGV</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6 text-sm text-slate-700 leading-relaxed">
+                        <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6 mb-8">
+                            <h3 className="text-center font-bold text-lg mb-4 underline uppercase text-amber-900">{data.conditions.name}</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm leading-relaxed text-slate-800">
                                 <p><strong>💰 Prix :</strong> {data.conditions.prix}</p>
                                 <p><strong>🚚 Livraison :</strong> {data.conditions.livraison}</p>
                                 <p><strong>⏱️ Délai :</strong> {data.conditions.delai}</p>
@@ -124,28 +131,26 @@
                         </div>
                         <div className="space-y-6">
                             {data.questions.map((q, idx) => (
-                                <div key={q.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                    <p className="font-semibold text-slate-800 mb-3 flex gap-2">
-                                        <span className="bg-slate-200 text-slate-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">{idx + 1}</span>
-                                        {q.text}
-                                    </p>
+                                <div key={q.id} className="bg-slate-50 p-5 rounded-xl border border-slate-100">
+                                    <p className="font-bold text-slate-800 mb-3">{idx + 1}. {q.text}</p>
                                     <textarea
                                         disabled={submitted[q.id]}
-                                        className={`w-full p-3 border-2 rounded-lg outline-none text-sm transition-all ${submitted[q.id] ? 'bg-gray-100 border-gray-200 text-gray-500' : 'bg-white border-slate-200 focus:border-blue-500 text-slate-800'}`}
-                                        placeholder="Votre réponse..."
-                                        rows="2"
+                                        className="w-full p-4 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none text-sm transition-all bg-white"
+                                        rows="3"
                                         value={userAnswers[q.id] || ''}
                                         onChange={(e) => setUserAnswers({...userAnswers, [q.id]: e.target.value})}
                                     />
                                     <button
                                         onClick={() => toggleSubmit(q.id)}
-                                        className={`mt-3 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition-colors ${submitted[q.id] ? 'bg-slate-400 hover:bg-slate-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                                        className={`mt-3 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                                            submitted[q.id] ? 'bg-slate-500 text-white' : 'bg-amber-600 text-white hover:bg-amber-700 shadow-md'
+                                        }`}
                                     >
                                         {submitted[q.id] ? "Modifier ma réponse" : "Valider et voir la solution"}
                                     </button>
                                     {submitted[q.id] && (
-                                        <div className="mt-4 p-3 bg-green-50 border-l-4 border-green-500 text-green-900 text-sm animate-fadeIn">
-                                            <strong>✅ Solution :</strong> <span className="italic">{q.correctAnswer}</span>
+                                        <div className="mt-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-900 text-sm italic animate-fadeIn">
+                                            <strong>Corrigé type :</strong> {q.correctAnswer}
                                         </div>
                                     )}
                                 </div>
@@ -157,14 +162,11 @@
         };
 
         const CalculationExercise = ({ data }) => {
-            const initialInputs = { gross: '', remise: '', netCom: '', escompte: '', final: '' };
-            const [inputs, setInputs] = useState(initialInputs);
+            const [inputs, setInputs] = useState({ gross: '', remise: '', netCom: '', escompte: '', final: '' });
             const [validated, setValidated] = useState(false);
 
-            // Calculs automatiques pour la correction
             const calcs = useMemo(() => {
                 const gross = data.items.reduce((acc, i) => acc + (i.quantity * i.unitPrice), 0);
-                // Si le montant brut est strictment supérieur au seuil
                 const remise = gross > data.remiseThreshold ? (gross * data.remiseRate / 100) : 0;
                 const netCom = gross - remise;
                 const escompte = (netCom * data.escompteRate / 100);
@@ -172,106 +174,77 @@
                 return { gross, remise, netCom, escompte, final };
             }, [data]);
 
-            const check = (field) => {
-                if (!validated) return "border-slate-300 focus:border-indigo-500";
-                
-                // Gestion des virgules et points pour les nombres
-                const valStr = inputs[field] ? inputs[field].replace(',', '.') : "0";
-                const userVal = parseFloat(valStr);
-                
-                if (isNaN(userVal)) return "border-red-500 bg-red-50";
-
-                // Tolérance de 0.05 centime
-                const isCorrect = Math.abs(userVal - calcs[field]) < 0.05;
-                return isCorrect ? "border-green-500 bg-green-50 text-green-700 font-semibold" : "border-red-500 bg-red-50 text-red-700";
-            };
-
-            const handleAction = () => {
-                if (validated) {
-                    // Si on clique sur recommencer, on vide tout
-                    setInputs(initialInputs);
-                    setValidated(false);
-                } else {
-                    // Sinon on valide
-                    setValidated(true);
-                }
+            const checkStyle = (field) => {
+                if (!validated) return "border-slate-200 focus:border-indigo-500";
+                const userVal = parseFloat(inputs[field].replace(',', '.'));
+                return Math.abs(userVal - calcs[field]) < 0.05 
+                    ? "border-green-500 bg-green-50 text-green-700 font-bold" 
+                    : "border-red-500 bg-red-50 text-red-700 font-bold";
             };
 
             const format = (v) => new Intl.NumberFormat('fr-BE', { style: 'currency', currency: 'EUR' }).format(v);
 
             return (
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-10 animate-fadeIn">
-                    <div className="bg-indigo-700 px-6 py-4 text-white font-bold text-xl flex items-center gap-2">
-                        <span>🧮</span> {data.title}
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-12 animate-fadeIn">
+                    <div className="bg-indigo-700 px-6 py-4 text-white flex items-center gap-2">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                        <h2 className="text-xl font-bold">{data.title}</h2>
                     </div>
                     <div className="p-6">
-                        <div className="bg-slate-800 text-white p-5 rounded-xl mb-6 shadow-inner">
-                            <p className="mb-2 text-lg">
-                                <span className="font-bold text-indigo-300">{data.companyName}</span> achète chez <span className="font-bold text-indigo-300">{data.supplierName}</span> :
-                            </p>
-                            <ul className="list-disc ml-6 text-slate-200 mb-4">
-                                {data.items.map((i, idx) => (
-                                    <li key={idx}>
-                                        <span className="font-mono bg-slate-700 px-1 rounded text-yellow-300">{i.quantity}</span> x {i.label} à <span className="font-mono bg-slate-700 px-1 rounded text-yellow-300">{format(i.unitPrice)}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                            <div className="bg-slate-700/50 p-3 rounded border border-slate-600 text-sm italic text-slate-300 flex flex-wrap gap-4">
-                                <span>🏷️ Remise : <strong>{data.remiseRate}%</strong> (si &gt; {format(data.remiseThreshold)})</span>
-                                <span>⚡ Escompte : <strong>{data.escompteRate}%</strong> ({data.escompteDays} jours)</span>
+                        <div className="bg-slate-800 text-white p-6 rounded-xl mb-8 shadow-inner">
+                            <p className="text-indigo-300 font-bold uppercase text-xs mb-2">Énoncé de l'exercice</p>
+                            <p className="text-lg mb-4"><strong>{data.companyName}</strong> achète chez <strong>{data.supplierName}</strong> :</p>
+                            <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600 mb-4">
+                                <p className="font-semibold text-slate-100">{data.items[0].quantity} x {data.items[0].label} à {format(data.items[0].unitPrice)}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm text-slate-400 italic">
+                                <p>• Remise : {data.remiseRate}% (si > {format(data.remiseThreshold)})</p>
+                                <p>• Escompte : {data.escompteRate}% (paiement comptant)</p>
                             </div>
                         </div>
-
-                        <div className="overflow-x-auto">
-                            <table className="w-full border-collapse min-w-[300px]">
-                                <thead className="bg-slate-100 uppercase text-[10px] font-bold text-slate-500 tracking-wider">
+                        <div className="overflow-x-auto rounded-xl border border-slate-200 mb-6">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-200">
                                     <tr>
-                                        <th className="p-3 text-left">Libellé</th>
-                                        <th className="p-3 text-right">Votre calcul (€)</th>
-                                        {validated && <th className="p-3 text-right bg-indigo-50 text-indigo-700 animate-fadeIn">Correction</th>}
+                                        <th className="p-4">Étape de calcul</th>
+                                        <th className="p-4 text-right">Votre résultat (€)</th>
+                                        {validated && <th className="p-4 text-right bg-indigo-50 text-indigo-700">Solution</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {[
-                                        { key: 'gross', label: 'Prix Brut Total' },
-                                        { key: 'remise', label: `Remise (${data.remiseRate}%)` },
-                                        { key: 'netCom', label: 'Net Commercial' },
-                                        { key: 'escompte', label: `Escompte (${data.escompteRate}%)` },
-                                        { key: 'final', label: 'NET À PAYER' }
+                                        {key: 'gross', label: 'Prix Brut'},
+                                        {key: 'remise', label: `Remise (${data.remiseRate}%)`},
+                                        {key: 'netCom', label: 'Net Commercial'},
+                                        {key: 'escompte', label: `Escompte (${data.escompteRate}%)`},
+                                        {key: 'final', label: 'NET À PAYER'}
                                     ].map((row) => (
-                                        <tr key={row.key} className={row.key === 'final' ? 'bg-indigo-50/50 font-bold' : 'hover:bg-slate-50'}>
-                                            <td className="p-3 text-sm text-slate-700">{row.label}</td>
-                                            <td className="p-3 text-right">
+                                        <tr key={row.key} className={row.key === 'final' ? 'bg-indigo-50/50 font-black' : ''}>
+                                            <td className="p-4 text-sm text-slate-700">{row.label}</td>
+                                            <td className="p-4 text-right">
                                                 <input
                                                     type="text"
-                                                    inputMode="decimal"
-                                                    placeholder="0,00"
-                                                    className={`w-32 p-2 text-right border-2 rounded outline-none transition-all ${check(row.key)}`}
+                                                    className={`w-32 p-2 text-right border-2 rounded-lg outline-none transition-all ${checkStyle(row.key)}`}
                                                     value={inputs[row.key]}
+                                                    placeholder="0,00"
                                                     onChange={e => setInputs({...inputs, [row.key]: e.target.value})}
+                                                    disabled={validated}
                                                 />
                                             </td>
-                                            {validated && (
-                                                <td className="p-3 text-right text-sm font-bold text-indigo-700 bg-indigo-50 animate-fadeIn">
-                                                    {format(calcs[row.key])}
-                                                </td>
-                                            )}
+                                            {validated && <td className="p-4 text-right text-sm font-bold text-indigo-900 bg-indigo-50">{format(calcs[row.key])}</td>}
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-
-                        <div className="mt-8 flex justify-center">
+                        <div className="flex flex-col items-center gap-4">
                             <button
-                                onClick={handleAction}
-                                className={`px-8 py-3 rounded-full font-bold shadow-lg transform transition-all hover:scale-105 active:scale-95 ${
-                                    validated 
-                                    ? "bg-slate-600 hover:bg-slate-700 text-white" 
-                                    : "bg-green-600 hover:bg-green-700 text-white"
+                                onClick={() => setValidated(!validated)}
+                                className={`px-10 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-xl transition-all active:scale-95 ${
+                                    validated ? 'bg-slate-200 text-slate-700' : 'bg-indigo-700 text-white hover:bg-indigo-800 ring-4 ring-indigo-100'
                                 }`}
                             >
-                                {validated ? "🔄 Recommencer l'exercice" : "✅ Vérifier mes calculs"}
+                                {validated ? "Recommencer l'exercice" : "Valider mes résultats"}
                             </button>
                         </div>
                     </div>
@@ -280,46 +253,64 @@
         };
 
         const App = () => {
-            const [tab, setTab] = useState('analysis');
+            const [activeTab, setActiveTab] = useState('analysis');
+
             return (
-                <div className="max-w-3xl mx-auto px-4 py-12">
-                    <header className="mb-12 text-center animate-fadeIn">
-                        <div className="inline-block p-2 bg-blue-100 text-blue-700 rounded-full mb-4 text-xs font-bold uppercase tracking-widest">Exercices interactifs</div>
-                        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-800 mb-3 tracking-tight">Comptabilité : Fiche 5</h1>
-                        <p className="text-slate-500 text-lg">Maîtriser les conditions de vente et le calcul du prix net</p>
+                <div className="min-h-screen pb-12">
+                    <header className="bg-slate-800 text-white shadow-lg p-10 mb-8">
+                        <div className="max-w-5xl mx-auto text-center">
+                            <h1 className="text-4xl font-extrabold mb-2 uppercase tracking-tight">Comptabilité 4e : Fiche 5</h1>
+                            <p className="text-indigo-300 italic text-xl">Analyse des conditions de vente et calculs de prix net</p>
+                        </div>
                     </header>
-                    
-                    <nav className="flex gap-2 p-1 bg-white rounded-full shadow-sm border border-slate-200 mb-8 mx-auto max-w-md">
-                        <button 
-                            onClick={() => setTab('analysis')} 
-                            className={`flex-1 px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'analysis' ? 'bg-amber-500 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                            Analyse CGV
-                        </button>
-                        <button 
-                            onClick={() => setTab('calculation')} 
-                            className={`flex-1 px-6 py-2 rounded-full text-sm font-bold transition-all ${tab === 'calculation' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                            Calculs
-                        </button>
-                    </nav>
 
-                    <div>
-                        {tab === 'analysis' 
-                            ? analysisExercises.map(ex => <AnalysisExercise key={ex.id} data={ex} />) 
-                            : calculationExercises.map(ex => <CalculationExercise key={ex.id} data={ex} />)
-                        }
-                    </div>
+                    <main className="max-w-4xl mx-auto px-4">
+                        <div className="flex justify-center gap-4 mb-10">
+                            <button
+                                onClick={() => setActiveTab('analysis')}
+                                className={`px-10 py-4 rounded-full font-bold shadow-lg transition-all ${
+                                    activeTab === 'analysis' ? 'bg-amber-600 text-white scale-105' : 'bg-white text-slate-600 hover:bg-slate-50'
+                                }`}
+                            >
+                                🔍 Analyse des CGV
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('calculation')}
+                                className={`px-10 py-4 rounded-full font-bold shadow-lg transition-all ${
+                                    activeTab === 'calculation' ? 'bg-indigo-700 text-white scale-105' : 'bg-white text-slate-600 hover:bg-slate-50'
+                                }`}
+                            >
+                                🧮 Exercices de calcul
+                            </button>
+                        </div>
 
-                    <footer className="text-center text-slate-400 text-sm mt-12 pb-8">
-                        Exercices de révision - Comptabilité
+                        <div className="animate-fadeIn">
+                            {activeTab === 'analysis' ? (
+                                <div className="space-y-6">
+                                    {analysisExercises.map(ex => <AnalysisExercise key={ex.id} data={ex} />)}
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {calculationExercises.map(ex => <CalculationExercise key={ex.id} data={ex} />)}
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    <footer className="mt-20 text-center text-slate-400 text-sm border-t border-slate-200 pt-8 pb-4">
+                        <p>© Institut Saint-Luc - Cours de Comptabilité 4e Technique</p>
+                        <p className="mt-2 text-xs">Propulsé par React 18 & Babel Standalone (No-Build Architecture)</p>
                     </footer>
                 </div>
             );
         };
 
-        const root = createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // Montage de l'application
+        const container = document.getElementById('root');
+        if (container) {
+            const root = createRoot(container);
+            root.render(<App />);
+        }
     </script>
 </body>
 </html>
