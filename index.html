@@ -1,246 +1,350 @@
+import React, { useState, useMemo } from 'react';
+import { 
+    FileText, 
+    Calculator, 
+    Truck, 
+    CreditCard, 
+    Tag, 
+    AlertCircle, 
+    CheckCircle2, 
+    HelpCircle,
+    RefreshCw,
+    ChevronRight
+} from 'lucide-react';
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exercices Comptabilité - Conditions de Vente</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
-        .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
-    <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
-  }
-}
-</script>
-</head>
-<body>
-    <div id="root"></div>
+// --- DONNÉES DES EXERCICES ---
+const analysisExercises = [
+    {
+        id: 1,
+        title: "Analyse 1 : OfficePro.be",
+        conditions: {
+            name: "OfficePro.be",
+            prix: "Tous nos prix s'entendent HTVA (TVA 21% non incluse).",
+            livraison: "Franco domicile dès 75 € d'achat. Frais de port forfaitaires de 6,50 € pour toute commande inférieure.",
+            delai: "Livraison sous 24h à 48h ouvrables.",
+            paiement: "Bancontact, Carte de Crédit, PayPal. Facturation à 30 jours pour les administrations publiques.",
+            reductions: "Remise de 15% pour toute commande de plus de 500 unités. Escompte de 3% pour paiement au grand comptant (à la réception).",
+            reclamations: "Toute réclamation doit être introduite par écrit dans les 5 jours suivant la livraison."
+        },
+        questions: [
+            { id: 1, text: "Quelles sont les conditions de livraison ? Explique.", correctAnswer: "La livraison est Franco (gratuite) si la commande atteint 75 €. En dessous de ce montant, des frais de port forfaitaires de 6,50 € sont appliqués. Le délai est de 24 à 48h." },
+            { id: 2, text: "Une école commande pour 60 € de matériel. Quel sera le montant des frais de livraison ?", correctAnswer: "6,50 €. Le seuil du franco étant de 75 €, une commande de 60 € est soumise aux frais forfaitaires." },
+            { id: 3, text: "Un client paie sa facture dès réception. De quelle réduction peut-il bénéficier ?", correctAnswer: "Il bénéficie d'un escompte de 3% car il paie au grand comptant (à la réception)." }
+        ]
+    },
+    {
+        id: 2,
+        title: "Analyse 2 : ElectroTech Express",
+        conditions: {
+            name: "ElectroTech Express",
+            prix: "Prix nets TVAC affichés.",
+            livraison: "Livraison standard 4,90 €. Franco de port à partir de 150 € d'achat.",
+            delai: "Expédition le jour même pour toute commande passée avant 12h.",
+            paiement: "Virement bancaire ou espèces en magasin. Professionnels : paiement à 30 jours date de facture.",
+            reductions: "Remise fidélité de 5% dès le 3ème achat annuel. Escompte de 1% pour paiement sous 10 jours.",
+            reclamations: "Signalement des avaries de transport endéans les 48 heures."
+        },
+        questions: [
+            { id: 1, text: "À partir de quel montant la livraison devient-elle gratuite ?", correctAnswer: "À partir de 150 € d'achat." },
+            { id: 2, text: "Quelle est l'échéance de paiement pour un client professionnel ?", correctAnswer: "Le paiement est dû à 30 jours à dater de la facture." },
+            { id: 3, text: "Un client paie le 5ème jour. Quel avantage financier obtient-il ?", correctAnswer: "Il obtient un escompte de 1% car le paiement a été effectué dans le délai de 10 jours." }
+        ]
+    }
+];
 
-    <script type="module">
-        import React, { useState, useMemo } from 'react';
-        import { createRoot } from 'react-dom/client';
+const calculationExercises = [
+    {
+        id: 1,
+        title: "Calcul 1 : Librairie du Centre",
+        companyName: "Librairie du Centre (SRL)",
+        supplierName: "Papeterie Gros",
+        items: [{ label: "Ramettes de papier A4", quantity: 80, unitPrice: 4.50 }],
+        remiseRate: 10,
+        remiseThreshold: 300,
+        escompteRate: 2,
+        escompteDays: 8
+    },
+    {
+        id: 2,
+        title: "Calcul 2 : Garage du Midi",
+        companyName: "Garage du Midi",
+        supplierName: "Pneus-Direct",
+        items: [{ label: "Pneus été 205/55 R16", quantity: 12, unitPrice: 95.00 }],
+        remiseRate: 5,
+        remiseThreshold: 1000,
+        escompteRate: 3,
+        escompteDays: 5
+    }
+];
 
-        // --- DATA ---
-        const analysisExercises = [
-            {
-                id: 1,
-                title: "Analyse 1 : OfficePro.be",
-                conditions: {
-                    name: "OfficePro.be",
-                    prix: "Tous nos prix s'entendent HTVA (TVA 21% non incluse).",
-                    livraison: "Franco domicile dès 75 € d'achat. Frais de port forfaitaires de 6,50 € pour toute commande inférieure.",
-                    delai: "Livraison sous 24h à 48h ouvrables.",
-                    paiement: "Bancontact, Carte de Crédit, PayPal. Facturation à 30 jours pour les administrations publiques.",
-                    reductions: "Remise de 15% pour toute commande de plus de 500 unités. Escompte de 3% pour paiement au grand comptant (à la réception).",
-                    reclamations: "Toute réclamation doit être introduite par écrit dans les 5 jours suivant la livraison."
-                },
-                questions: [
-                    { id: 1, text: "Quelles sont les conditions de livraison ? Explique.", correctAnswer: "Franco (gratuit) si la commande est ≥ 75 €. Sinon, 6,50 € de frais de port. Délai : 24-48h." },
-                    { id: 2, text: "Une école commande pour 60 € de matériel. Quel sera le montant des frais de livraison ?", correctAnswer: "6,50 € car le montant est inférieur au seuil de 75 €." },
-                    { id: 3, text: "Un client paie sa facture dès réception. De quelle réduction peut-il bénéficier ?", correctAnswer: "Un escompte de 3% (paiement au grand comptant)." }
-                ]
-            },
-            {
-                id: 2,
-                title: "Analyse 2 : ElectroTech Express",
-                conditions: {
-                    name: "ElectroTech Express",
-                    prix: "Prix nets TVAC affichés.",
-                    livraison: "Livraison standard 4,90 €. Franco de port à partir de 150 € d'achat.",
-                    delai: "Expédition le jour même pour toute commande passée avant 12h.",
-                    paiement: "Virement bancaire ou espèces en magasin. Professionnels : paiement à 30 jours date de facture.",
-                    reductions: "Remise fidélité de 5% dès le 3ème achat annuel. Escompte de 1% pour paiement sous 10 jours.",
-                    reclamations: "Signalement des avaries de transport endéans les 48 heures."
-                },
-                questions: [
-                    { id: 1, text: "À partir de quel montant la livraison devient-elle gratuite ?", correctAnswer: "À partir de 150 € d'achat." },
-                    { id: 2, text: "Quelle est l'échéance de paiement pour un client professionnel ?", correctAnswer: "30 jours après la date de la facture." },
-                    { id: 3, text: "Un client paie le 5ème jour. Quel avantage financier obtient-il ?", correctAnswer: "Un escompte de 1% (car paiement effectué sous 10 jours)." }
-                ]
-            }
-        ];
+// --- COMPOSANTS ---
 
-        const calculationExercises = [
-            {
-                id: 1,
-                title: "Calcul 1 : Librairie du Centre",
-                companyName: "Librairie du Centre (SRL)",
-                supplierName: "Papeterie Gros",
-                items: [{ label: "Ramettes de papier A4", quantity: 80, unitPrice: 4.50 }],
-                remiseRate: 10,
-                remiseThreshold: 300,
-                escompteRate: 2,
-                escompteDays: 8
-            },
-            {
-                id: 2,
-                title: "Calcul 2 : Garage du Midi",
-                companyName: "Garage du Midi",
-                supplierName: "Pneus-Direct",
-                items: [{ label: "Pneus été 205/55 R16", quantity: 12, unitPrice: 95.00 }],
-                remiseRate: 5,
-                remiseThreshold: 1000,
-                escompteRate: 3,
-                escompteDays: 5
-            }
-        ];
+const AnalysisExercise = ({ data }) => {
+    const [userAnswers, setUserAnswers] = useState({});
+    const [submitted, setSubmitted] = useState({});
 
-        // --- COMPONENTS ---
+    const toggleSubmit = (id) => setSubmitted(prev => ({ ...prev, [id]: !prev[id] }));
 
-        const AnalysisExercise = ({ data }) => {
-            const [userAnswers, setUserAnswers] = useState({});
-            const [submitted, setSubmitted] = useState({});
-
-            const toggleSubmit = (id) => setSubmitted(prev => ({ ...prev, [id]: !prev[id] }));
-
-            return (
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-10">
-                    <div className="bg-amber-600 px-6 py-4 text-white font-bold text-xl">{data.title}</div>
-                    <div className="p-6">
-                        <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-5 mb-8">
-                            <h3 className="text-center font-bold text-lg mb-4 underline uppercase text-amber-900">{data.conditions.name} - CGV</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm leading-relaxed">
-                                <p><strong>💰 Prix :</strong> {data.conditions.prix}</p>
-                                <p><strong>🚚 Livraison :</strong> {data.conditions.livraison}</p>
-                                <p><strong>⏱️ Délai :</strong> {data.conditions.delai}</p>
-                                <p><strong>💳 Paiement :</strong> {data.conditions.paiement}</p>
-                                <p><strong>📉 Réductions :</strong> {data.conditions.reductions}</p>
-                                <p><strong>📝 Réclamations :</strong> {data.conditions.reclamations}</p>
+    return (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-slate-900 px-6 py-5 flex items-center gap-3 text-white">
+                <FileText className="text-amber-400" size={24} />
+                <h2 className="font-bold text-xl">{data.title}</h2>
+            </div>
+            <div className="p-6">
+                <div className="bg-white border border-amber-200 rounded-xl p-6 mb-8 shadow-inner bg-gradient-to-br from-amber-50/50 to-white">
+                    <h3 className="text-center font-bold text-lg mb-6 text-amber-900 flex items-center justify-center gap-2">
+                        <ChevronRight className="text-amber-500" />
+                        {data.conditions.name.toUpperCase()} - CONDITIONS GÉNÉRALES
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                        <div className="space-y-4">
+                            <div className="flex gap-3">
+                                <Tag className="text-amber-600 shrink-0 mt-1" size={18} />
+                                <p><strong>Prix :</strong> {data.conditions.prix}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <Truck className="text-amber-600 shrink-0 mt-1" size={18} />
+                                <p><strong>Livraison :</strong> {data.conditions.livraison}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <HelpCircle className="text-amber-600 shrink-0 mt-1" size={18} />
+                                <p><strong>Délai :</strong> {data.conditions.delai}</p>
                             </div>
                         </div>
-                        <div className="space-y-6">
-                            {data.questions.map((q, idx) => (
-                                <div key={q.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                    <p className="font-semibold text-slate-800 mb-3">{idx + 1}. {q.text}</p>
-                                    <textarea
-                                        disabled={submitted[q.id]}
-                                        className="w-full p-3 border-2 border-slate-200 rounded-lg focus:border-blue-500 outline-none text-sm transition-all"
-                                        placeholder="Votre réponse..."
-                                        rows="2"
-                                        value={userAnswers[q.id] || ''}
-                                        onChange={(e) => setUserAnswers({...userAnswers, [q.id]: e.target.value})}
-                                    />
-                                    <button
-                                        onClick={() => toggleSubmit(q.id)}
-                                        className="mt-2 bg-blue-600 text-white px-4 py-2 rounded text-xs font-bold uppercase hover:bg-blue-700 transition-colors"
-                                    >
-                                        {submitted[q.id] ? "Modifier ma réponse" : "Valider et voir la solution"}
-                                    </button>
-                                    {submitted[q.id] && (
-                                        <div className="mt-4 p-3 bg-green-100 border-l-4 border-green-500 text-green-800 text-sm animate-fadeIn italic">
-                                            <strong>Solution :</strong> {q.correctAnswer}
-                                        </div>
-                                    )}
+                        <div className="space-y-4">
+                            <div className="flex gap-3">
+                                <CreditCard className="text-amber-600 shrink-0 mt-1" size={18} />
+                                <p><strong>Paiement :</strong> {data.conditions.paiement}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <Calculator className="text-amber-600 shrink-0 mt-1" size={18} />
+                                <p><strong>Réductions :</strong> {data.conditions.reductions}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <AlertCircle className="text-amber-600 shrink-0 mt-1" size={18} />
+                                <p><strong>Réclamations :</strong> {data.conditions.reclamations}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-8">
+                    {data.questions.map((q, idx) => (
+                        <div key={q.id} className="relative pl-4 border-l-4 border-slate-200 focus-within:border-indigo-500 transition-colors">
+                            <p className="font-bold text-slate-800 mb-3">{idx + 1}. {q.text}</p>
+                            <textarea
+                                readOnly={submitted[q.id]}
+                                className={`w-full p-4 border rounded-xl outline-none text-sm transition-all h-24 resize-none ${submitted[q.id] ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-300 focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400'}`}
+                                placeholder="Rédigez votre réponse ici..."
+                                value={userAnswers[q.id] || ''}
+                                onChange={(e) => setUserAnswers({...userAnswers, [q.id]: e.target.value})}
+                            />
+                            <div className="flex justify-start mt-2">
+                                <button
+                                    onClick={() => toggleSubmit(q.id)}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2 ${submitted[q.id] ? 'bg-slate-200 text-slate-600' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                                >
+                                    {submitted[q.id] ? <><RefreshCw size={14} /> Modifier</> : <><CheckCircle2 size={14} /> Valider</>}
+                                </button>
+                            </div>
+                            {submitted[q.id] && (
+                                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl text-green-900 text-sm animate-in fade-in duration-300">
+                                    <div className="flex items-center gap-2 font-bold mb-1 text-green-700">
+                                        <CheckCircle2 size={16} /> Proposition de correction :
+                                    </div>
+                                    <p className="italic leading-relaxed">{q.correctAnswer}</p>
                                 </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const CalculationExercise = ({ data }) => {
+    const [inputs, setInputs] = useState({ gross: '', remise: '', netCom: '', escompte: '', final: '' });
+    const [validated, setValidated] = useState(false);
+
+    const calcs = useMemo(() => {
+        const gross = data.items.reduce((acc, i) => acc + (i.quantity * i.unitPrice), 0);
+        const remise = gross > data.remiseThreshold ? (gross * data.remiseRate / 100) : 0;
+        const netCom = gross - remise;
+        const escompte = (netCom * data.escompteRate / 100);
+        const final = netCom - escompte;
+        return { gross, remise, netCom, escompte, final };
+    }, [data]);
+
+    const getValidationStyle = (field) => {
+        if (!validated || inputs[field] === '') return "border-slate-300";
+        const userVal = parseFloat(inputs[field].replace(',', '.'));
+        return Math.abs(userVal - calcs[field]) < 0.05 
+            ? "border-green-500 bg-green-50 text-green-700" 
+            : "border-red-500 bg-red-50 text-red-700 font-bold";
+    };
+
+    const format = (v) => new Intl.NumberFormat('fr-BE', { style: 'currency', currency: 'EUR' }).format(v);
+
+    const handleReset = () => {
+        setInputs({ gross: '', remise: '', netCom: '', escompte: '', final: '' });
+        setValidated(false);
+    };
+
+    return (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-indigo-900 px-6 py-5 flex items-center gap-3 text-white">
+                <Calculator className="text-indigo-400" size={24} />
+                <h2 className="font-bold text-xl">{data.title}</h2>
+            </div>
+            <div className="p-6">
+                <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-xl mb-8">
+                    <p className="text-indigo-900 font-medium mb-3">Contexte de la facture :</p>
+                    <div className="space-y-2 text-sm text-indigo-950">
+                        <p><strong>Client :</strong> {data.companyName}</p>
+                        <p><strong>Fournisseur :</strong> {data.supplierName}</p>
+                        <div className="bg-white p-3 rounded border border-indigo-200 mt-4">
+                            <p className="font-bold border-b border-slate-100 pb-1 mb-2">Marchandises :</p>
+                            {data.items.map((i, idx) => (
+                                <p key={idx}>{i.quantity} x {i.label} à {format(i.unitPrice)}</p>
                             ))}
                         </div>
                     </div>
+                    <div className="mt-4 flex flex-wrap gap-4">
+                        <span className="bg-white px-3 py-1 rounded-full text-xs font-bold text-indigo-700 border border-indigo-200">
+                            Remise : {data.remiseRate}% (si &gt; {format(data.remiseThreshold)})
+                        </span>
+                        <span className="bg-white px-3 py-1 rounded-full text-xs font-bold text-indigo-700 border border-indigo-200">
+                            Escompte : {data.escompteRate}% ({data.escompteDays} jours)
+                        </span>
+                    </div>
                 </div>
-            );
-        };
 
-        const CalculationExercise = ({ data }) => {
-            const [inputs, setInputs] = useState({ gross: '', remise: '', netCom: '', escompte: '', final: '' });
-            const [validated, setValidated] = useState(false);
-
-            const calcs = useMemo(() => {
-                const gross = data.items.reduce((acc, i) => acc + (i.quantity * i.unitPrice), 0);
-                const remise = gross > data.remiseThreshold ? (gross * data.remiseRate / 100) : 0;
-                const netCom = gross - remise;
-                const escompte = (netCom * data.escompteRate / 100);
-                const final = netCom - escompte;
-                return { gross, remise, netCom, escompte, final };
-            }, [data]);
-
-            const check = (field) => {
-                if (!validated) return "";
-                const userVal = parseFloat(inputs[field].replace(',', '.'));
-                return Math.abs(userVal - calcs[field]) < 0.05 ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50";
-            };
-
-            const format = (v) => new Intl.NumberFormat('fr-BE', { style: 'currency', currency: 'EUR' }).format(v);
-
-            return (
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden mb-10">
-                    <div className="bg-indigo-700 px-6 py-4 text-white font-bold text-xl">{data.title}</div>
-                    <div className="p-6">
-                        <div className="bg-slate-800 text-white p-5 rounded-xl mb-6">
-                            <p className="mb-2"><strong>{data.companyName}</strong> achète chez <strong>{data.supplierName}</strong> :</p>
-                            <ul className="list-disc ml-6 text-indigo-100">
-                                {data.items.map((i, idx) => (idx === 0 && <li key={idx}>{i.quantity} x {i.label} à {format(i.unitPrice)}</li>))}
-                            </ul>
-                            <p className="mt-3 text-sm italic text-slate-400">Conditions : Remise {data.remiseRate}% (si > {format(data.remiseThreshold)}), Escompte {data.escompteRate}% ({data.escompteDays} j.)</p>
-                        </div>
-                        <table className="w-full border-collapse">
-                            <thead className="bg-slate-100 uppercase text-[10px] font-bold text-slate-600">
-                                <tr>
-                                    <th className="p-3 text-left">Libellé</th>
-                                    <th className="p-3 text-right">Votre calcul (€)</th>
-                                    {validated && <th className="p-3 text-right bg-blue-50 text-blue-700">Solution</th>}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {['gross', 'remise', 'netCom', 'escompte', 'final'].map((key) => (
-                                    <tr key={key} className={key === 'final' ? 'bg-indigo-50 font-bold' : ''}>
-                                        <td className="p-3 text-sm capitalize">{key.replace('gross', 'Prix Brut').replace('netCom', 'Net Commercial').replace('final', 'NET À PAYER')}</td>
-                                        <td className="p-3 text-right">
-                                            <input
-                                                type="text"
-                                                className={`w-28 p-2 text-right border-2 rounded outline-none ${check(key)}`}
-                                                value={inputs[key]}
-                                                onChange={e => setInputs({...inputs, [key]: e.target.value})}
-                                            />
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-slate-500 uppercase text-[11px] font-bold tracking-wider">
+                                <th className="pb-4 text-left px-2">Libellé du calcul</th>
+                                <th className="pb-4 text-right px-2">Montant (€)</th>
+                                {validated && <th className="pb-4 text-right px-4 text-indigo-600">Correction</th>}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {[
+                                { key: 'gross', label: 'Montant Brut' },
+                                { key: 'remise', label: `Remise (${data.remiseRate}%)` },
+                                { key: 'netCom', label: 'Net Commercial' },
+                                { key: 'escompte', label: `Escompte (${data.escompteRate}%)` },
+                                { key: 'final', label: 'NET À PAYER' }
+                            ].map((row) => (
+                                <tr key={row.key} className={row.key === 'final' ? 'bg-indigo-50/50' : ''}>
+                                    <td className={`py-4 px-2 ${row.key === 'final' ? 'font-black text-indigo-900' : 'font-medium text-slate-700'}`}>
+                                        {row.label}
+                                    </td>
+                                    <td className="py-4 px-2 text-right">
+                                        <input
+                                            type="text"
+                                            className={`w-32 p-2 text-right border rounded-lg transition-all outline-none font-mono ${getValidationStyle(row.key)} focus:ring-2 focus:ring-indigo-100`}
+                                            placeholder="0,00"
+                                            value={inputs[row.key]}
+                                            onChange={e => setInputs({...inputs, [row.key]: e.target.value})}
+                                            disabled={validated}
+                                        />
+                                    </td>
+                                    {validated && (
+                                        <td className="py-4 px-4 text-right font-bold text-indigo-600 animate-in fade-in duration-300">
+                                            {format(calcs[row.key])}
                                         </td>
-                                        {validated && <td className="p-3 text-right text-sm font-bold text-indigo-700 bg-blue-50">{format(calcs[key])}</td>}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <div className="mt-6 flex justify-center">
-                            <button
-                                onClick={() => setValidated(!validated)}
-                                className="bg-green-600 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-green-700"
+                                    )}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="mt-10 flex flex-col items-center gap-4">
+                    {!validated ? (
+                        <button
+                            onClick={() => setValidated(true)}
+                            className="bg-indigo-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center gap-2"
+                        >
+                            <CheckCircle2 size={20} /> Vérifier mes calculs
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleReset}
+                            className="bg-slate-800 text-white px-10 py-3 rounded-xl font-bold shadow-lg shadow-slate-200 hover:bg-slate-900 flex items-center gap-2"
+                        >
+                            <RefreshCw size={20} /> Recommencer l'exercice
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default function App() {
+    const [tab, setTab] = useState('analysis');
+
+    return (
+        <div className="min-h-screen bg-slate-50 pb-20 font-sans">
+            <div className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+                <div className="max-w-4xl mx-auto px-4 py-6">
+                    <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+                                <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center text-white text-[10px]">FAC</div>
+                                Comptabilité : Fiche 5
+                            </h1>
+                            <p className="text-slate-500 text-sm mt-1">Conditions de vente et facturation</p>
+                        </div>
+                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                            <button 
+                                onClick={() => setTab('analysis')} 
+                                className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'analysis' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                {validated ? "Recommencer" : "Vérifier mes calculs"}
+                                <FileText size={16} /> Analyse
+                            </button>
+                            <button 
+                                onClick={() => setTab('calculation')} 
+                                className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'calculation' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                <Calculator size={16} /> Calculs
                             </button>
                         </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const App = () => {
-            const [tab, setTab] = useState('analysis');
-            return (
-                <div className="max-w-4xl mx-auto px-4 py-10">
-                    <header className="mb-10 text-center">
-                        <h1 className="text-4xl font-extrabold text-slate-800">Comptabilité : Fiche 5</h1>
-                        <p className="text-slate-500 mt-2">Les conditions de vente et le calcul du prix net</p>
                     </header>
-                    <nav className="flex gap-4 mb-8 justify-center">
-                        <button onClick={() => setTab('analysis')} className={`px-6 py-2 rounded-full font-semibold ${tab === 'analysis' ? 'bg-amber-600 text-white' : 'bg-white text-slate-600 shadow'}`}>Analyse CGV</button>
-                        <button onClick={() => setTab('calculation')} className={`px-6 py-2 rounded-full font-semibold ${tab === 'calculation' ? 'bg-indigo-700 text-white' : 'bg-white text-slate-600 shadow'}`}>Calculs</button>
-                    </nav>
-                    <div>
-                        {tab === 'analysis' ? analysisExercises.map(ex => <AnalysisExercise key={ex.id} data={ex} />) : calculationExercises.map(ex => <CalculationExercise key={ex.id} data={ex} />)}
-                    </div>
                 </div>
-            );
-        };
+            </div>
 
-        const root = createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+            <main className="max-w-4xl mx-auto px-4 mt-12">
+                {tab === 'analysis' ? (
+                    <div className="space-y-4">
+                        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-8 flex items-start gap-3">
+                            <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
+                            <p className="text-sm text-amber-800 font-medium">
+                                <strong>Consigne :</strong> Analysez les CGV pour répondre aux questions de compréhension.
+                            </p>
+                        </div>
+                        {analysisExercises.map(ex => <AnalysisExercise key={ex.id} data={ex} />)}
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-xl mb-8 flex items-start gap-3">
+                            <HelpCircle className="text-indigo-600 shrink-0 mt-0.5" size={20} />
+                            <p className="text-sm text-indigo-800 font-medium">
+                                <strong>Consigne :</strong> Calculez les montants nets en respectant l'ordre de priorité (Remise puis Escompte).
+                            </p>
+                        </div>
+                        {calculationExercises.map(ex => <CalculationExercise key={ex.id} data={ex} />)}
+                    </div>
+                )}
+            </main>
+
+            <footer className="max-w-4xl mx-auto px-4 text-center text-slate-400 text-xs py-10 border-t border-slate-100 mt-10">
+                &copy; 2025 - Support de cours Comptabilité - Section Commerce
+            </footer>
+        </div>
+    );
+}
