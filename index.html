@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -6,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comptabilité 4e - Conditions de Vente</title>
     
-    <!-- Import Map pour la résolution des modules ES par le navigateur -->
     <script type="importmap">
     {
         "imports": {
@@ -16,29 +14,323 @@
     }
     </script>
 
-    <!-- Babel Standalone pour la transpilation JSX au runtime -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Framework CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            --bg: #0f1117;
+            --bg2: #1a1a2e;
+            --bg3: #111;
+            --card: #1e1e30;
+            --accent: #22d68a;
+            --orange: #ff8a3d;
+            --text: #eee;
+            --text2: #999;
+            --text3: #666;
+            --border: #333;
+            --radius: 12px;
+        }
         body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
         .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+        .shake { animation: shake 0.4s ease-in-out; }
         input:focus, textarea:focus { outline: none; border-color: #6366f1; ring: 2px; ring-color: #e0e7ff; }
     </style>
 </head>
 <body>
+    <!-- ===== MODAL EMAIL (TRACKING SPEC v5) ===== -->
+    <div id="emailOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+      <div style="background:var(--bg2,#1a1a2e);border:1px solid var(--border,#333);border-radius:16px;padding:32px;max-width:420px;width:90%;text-align:center;box-shadow:0 0 40px rgba(0,0,0,0.5);">
+        <div style="font-size:2rem;margin-bottom:12px;">🎓</div>
+        <h2 style="font-size:1.3rem;margin-bottom:4px;color:var(--text,#eee);">Identification</h2>
+        <p style="font-size:0.85rem;color:var(--text2,#999);margin-bottom:20px;">Entre ton adresse email scolaire pour commencer.</p>
+        <input type="email" id="emailInput" placeholder="prenom.nom@eleve.istlm.be"
+          style="width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--border,#333);background:var(--bg3,#111);color:var(--text,#eee);font-size:1rem;outline:none;margin-bottom:12px;font-family:inherit;box-sizing:border-box;"
+          onkeydown="if(event.key==='Enter')validateEmail()">
+        <div id="emailError" style="color:#ff4060;font-size:0.82rem;margin-bottom:12px;min-height:1.2em;"></div>
+        <button id="emailBtn" onclick="validateEmail()"
+          style="width:100%;padding:12px;border-radius:10px;border:none;background:var(--accent,#22d68a);color:#0f1117;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.2s;">
+          ✅ Vérifier et commencer
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== MODAL CLASSEMENT (TRACKING SPEC v5) ===== -->
+    <div id="lbOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);" onclick="if(event.target===this)closeLB()">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg2,#1a1a2e);border:1px solid var(--border,#333);border-radius:16px;padding:28px;width:95%;max-width:600px;max-height:85vh;overflow-y:auto;box-shadow:0 0 40px rgba(0,0,0,0.5);">
+        <button onclick="closeLB()" style="position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text2,#999);font-size:1.5rem;cursor:pointer;">✕</button>
+        <div style="display:flex;gap:8px;margin-bottom:20px;">
+          <button id="lbTabApp" onclick="switchLBTab('app')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--accent,#22d68a);background:var(--accent,#22d68a);color:#0f1117;font-weight:700;cursor:pointer;font-family:inherit;font-size:0.85rem;">🏆 Cette application</button>
+          <button id="lbTabGlobal" onclick="switchLBTab('global')" style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--orange,#ff8a3d);background:transparent;color:var(--orange,#ff8a3d);font-weight:700;cursor:pointer;font-family:inherit;font-size:0.85rem;">🌍 Classement général</button>
+        </div>
+        <div id="lbContent"><div style="text-align:center;padding:40px;color:var(--text2,#999);">Chargement…</div></div>
+      </div>
+    </div>
+
     <div id="root"></div>
 
-    <!-- Script avec type text/babel et data-type module pour combiner JSX et Imports ESM -->
+    <!-- ============================================================ -->
+    <!-- TRACKING — Vanilla JS (SPEC v5)                              -->
+    <!-- ============================================================ -->
+    <script>
+    const TRACKING = {
+        appName: "Conditions de Vente",
+        totalNiveaux: 4,
+        sessionId: null,
+        scriptUrl: "https://script.google.com/macros/s/AKfycbx9bRMVuHU2mgFLii1KcQXD3LdZahnDH1rf1cWv9RuDvQAt0l3VtLtxzmbH7MtpJWRjfA/exec"
+    };
+
+    const APP = {
+        email: localStorage.getItem('student_email') || '',
+        classe: localStorage.getItem('student_classe') || '',
+        score: 0,
+        completedExercises: [],
+        exerciseStartTime: null,
+        exerciseTimes: {},
+        exerciseScores: {},
+        scoreBeforeExercise: 0,
+        globalTimerStart: null,
+        globalTimerInterval: null
+    };
+
+    window.TRACKING = TRACKING;
+    window.APP = APP;
+
+    function showEmailModal() {
+        var overlay = document.getElementById('emailOverlay');
+        overlay.style.display = 'flex';
+        var input = document.getElementById('emailInput');
+        var saved = localStorage.getItem('student_email');
+        if (saved) input.value = saved;
+        input.focus();
+        document.getElementById('emailError').textContent = '';
+    }
+
+    function validateEmail() {
+        var input = document.getElementById('emailInput');
+        var btn = document.getElementById('emailBtn');
+        var errDiv = document.getElementById('emailError');
+        var email = input.value.trim().toLowerCase();
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            errDiv.textContent = '⚠️ Entre une adresse email valide.';
+            input.style.borderColor = '#ff4060';
+            return;
+        }
+
+        btn.textContent = '⏳ Vérification…';
+        btn.disabled = true;
+        errDiv.textContent = '';
+        input.style.borderColor = '';
+
+        var cbName = '_emailCb_' + Date.now();
+        var timeout = setTimeout(function() {
+            delete window[cbName];
+            var s = document.getElementById(cbName);
+            if (s) s.remove();
+            errDiv.textContent = '⚠️ Connexion impossible. Vérifie ta connexion internet.';
+            btn.textContent = '✅ Vérifier et commencer';
+            btn.disabled = false;
+        }, 10000);
+
+        window[cbName] = function(resp) {
+            clearTimeout(timeout);
+            delete window[cbName];
+            var s = document.getElementById(cbName);
+            if (s) s.remove();
+            btn.textContent = '✅ Vérifier et commencer';
+            btn.disabled = false;
+
+            if (resp && resp.found) {
+                var oldEmail = localStorage.getItem('student_email');
+                localStorage.setItem('student_email', email);
+                localStorage.setItem('student_classe', resp.classe || '');
+                APP.email = email;
+                APP.classe = resp.classe || '';
+                if (oldEmail && oldEmail !== email) resetProgression();
+                TRACKING.sessionId = new Date().toISOString();
+                document.getElementById('emailOverlay').style.display = 'none';
+                startGlobalTimer();
+                if (window._onEmailValidated) window._onEmailValidated(email, resp.classe || '');
+            } else {
+                errDiv.textContent = "⚠️ Cette adresse email n'est pas enregistrée. Vérifie l'orthographe ou demande à ton professeur de t'ajouter à la liste.";
+                input.style.borderColor = '#ff4060';
+            }
+        };
+
+        var s = document.createElement('script');
+        s.id = cbName;
+        s.src = TRACKING.scriptUrl + '?action=check_email&email=' + encodeURIComponent(email) + '&callback=' + cbName;
+        s.onerror = function() {
+            clearTimeout(timeout); delete window[cbName]; s.remove();
+            errDiv.textContent = '⚠️ Erreur de connexion au serveur.';
+            btn.textContent = '✅ Vérifier et commencer'; btn.disabled = false;
+        };
+        document.body.appendChild(s);
+    }
+
+    function resetProgression() {
+        APP.score = 0; APP.completedExercises = []; APP.exerciseTimes = {};
+        APP.exerciseScores = {}; APP.scoreBeforeExercise = 0;
+    }
+
+    function startGlobalTimer() {
+        APP.globalTimerStart = Date.now();
+        var el = document.getElementById('globalTimer');
+        if (el) el.style.display = 'inline';
+        if (APP.globalTimerInterval) clearInterval(APP.globalTimerInterval);
+        APP.globalTimerInterval = setInterval(updateTimerDisplay, 1000);
+        updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+        var el = document.getElementById('globalTimer');
+        if (!el || !APP.globalTimerStart) return;
+        var elapsed = Math.floor((Date.now() - APP.globalTimerStart) / 1000);
+        el.textContent = '⏱️ ' + String(Math.floor(elapsed / 60)).padStart(2, '0') + ':' + String(elapsed % 60).padStart(2, '0');
+    }
+
+    window.startExerciseTimer = function(exIdx) {
+        if (APP.completedExercises.includes(exIdx)) return;
+        APP.exerciseStartTime = Date.now();
+        APP.scoreBeforeExercise = APP.score || 0;
+    };
+
+    window.stopExerciseTimer = function(exIdx) {
+        if (!APP.exerciseStartTime) return null;
+        var tempsSec = Math.round((Date.now() - APP.exerciseStartTime) / 1000);
+        APP.exerciseTimes[exIdx] = tempsSec;
+        APP.exerciseStartTime = null;
+        var deltaPoints = (APP.score || 0) - APP.scoreBeforeExercise;
+        APP.exerciseScores[exIdx] = deltaPoints;
+        return { points: deltaPoints, temps: tempsSec };
+    };
+
+    window.sendResult = function(niveau, points, pointsMax, temps) {
+        if (!APP.email) return;
+        var payload = {
+            email: APP.email, classe: APP.classe, app: TRACKING.appName,
+            niveau: niveau, points: points, pointsMax: pointsMax, temps: temps,
+            totalNiveaux: TRACKING.totalNiveaux, sessionId: TRACKING.sessionId
+        };
+        console.log('[TRACKING] Envoi:', payload);
+        fetch(TRACKING.scriptUrl, {
+            method: "POST", mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+        }).catch(function(err) { console.warn('[TRACKING] Erreur:', err); });
+    };
+
+    window.completeExercise = function(exIdx, exerciseName, points, pointsMax) {
+        if (APP.completedExercises.includes(exIdx)) return;
+        APP.completedExercises.push(exIdx);
+        APP.score += points;
+        var result = window.stopExerciseTimer(exIdx);
+        if (result) { window.sendResult(exerciseName, points, pointsMax, result.temps); }
+        else { window.sendResult(exerciseName, points, pointsMax, 0); }
+    };
+
+    window.restartApp = function() {
+        TRACKING.sessionId = new Date().toISOString();
+        APP.score = 0; APP.completedExercises = []; APP.exerciseTimes = {};
+        APP.exerciseScores = {}; APP.scoreBeforeExercise = 0; APP.globalTimerStart = Date.now();
+    };
+
+    var currentLBTab = 'app';
+    function openLB(tab) { document.getElementById('lbOverlay').style.display = 'block'; switchLBTab(tab || 'app'); }
+    window.openLB = openLB;
+    function closeLB() { document.getElementById('lbOverlay').style.display = 'none'; }
+    window.closeLB = closeLB;
+
+    function switchLBTab(tab) {
+        currentLBTab = tab;
+        var btnApp = document.getElementById('lbTabApp');
+        var btnGlobal = document.getElementById('lbTabGlobal');
+        if (tab === 'app') {
+            btnApp.style.background = 'var(--accent,#22d68a)'; btnApp.style.color = '#0f1117';
+            btnGlobal.style.background = 'transparent'; btnGlobal.style.color = 'var(--orange,#ff8a3d)';
+        } else {
+            btnGlobal.style.background = 'var(--orange,#ff8a3d)'; btnGlobal.style.color = '#0f1117';
+            btnApp.style.background = 'transparent'; btnApp.style.color = 'var(--accent,#22d68a)';
+        }
+        fetchLeaderboard(tab);
+    }
+
+    function fetchLeaderboard(tab) {
+        var content = document.getElementById('lbContent');
+        content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2,#999);">⏳ Chargement…</div>';
+        var action = tab === 'app' ? 'leaderboard_app' : 'leaderboard_global';
+        var cbName = '_lbCb_' + Date.now();
+        var timeout = setTimeout(function() {
+            delete window[cbName]; var s = document.getElementById(cbName); if (s) s.remove();
+            content.innerHTML = '<div style="text-align:center;padding:40px;"><div style="color:#ff4060;margin-bottom:12px;">⚠️ Connexion impossible</div><button onclick="fetchLeaderboard(\'' + tab + '\')" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border,#333);background:var(--bg3,#111);color:var(--text,#eee);cursor:pointer;font-family:inherit;">Réessayer</button></div>';
+        }, 10000);
+        window[cbName] = function(resp) {
+            clearTimeout(timeout); delete window[cbName];
+            var s = document.getElementById(cbName); if (s) s.remove();
+            var lbData = resp && (resp.leaderboard || resp.data);
+            if (!lbData || lbData.length === 0) { content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2,#999);">🏁 Aucun résultat pour le moment</div>'; return; }
+            renderLeaderboard(lbData, tab);
+        };
+        var url = TRACKING.scriptUrl + '?action=' + action + '&callback=' + cbName + '&mode=last';
+        if (tab === 'app') url += '&app=' + encodeURIComponent(TRACKING.appName);
+        if (APP.classe) url += '&classe=' + encodeURIComponent(APP.classe);
+        var s = document.createElement('script');
+        s.id = cbName; s.src = url;
+        s.onerror = function() { clearTimeout(timeout); delete window[cbName]; s.remove(); content.innerHTML = '<div style="text-align:center;padding:40px;color:#ff4060;">⚠️ Erreur de connexion</div>'; };
+        document.body.appendChild(s);
+    }
+
+    function renderLeaderboard(data, tab) {
+        var content = document.getElementById('lbContent');
+        var myEmail = (APP.email || '').toLowerCase();
+        var classeLabel = APP.classe ? ' (' + APP.classe + ')' : '';
+        var titleText = tab === 'app' ? '🏆 Classement — ' + TRACKING.appName + classeLabel : '🌍 Classement général' + classeLabel;
+        if (tab === 'global' && data.length > 0) {
+            data = data.slice().sort(function(a, b) { var pA = a.pct||0, pB = b.pct||0; if (pB !== pA) return pB - pA; return (a.totalTemps||0) - (b.totalTemps||0); });
+            data.forEach(function(e, i) { e.rang = i + 1; });
+        }
+        var me = data.find(function(r) { return r.email === myEmail; });
+        var html = '<div style="font-size:1rem;font-weight:700;color:var(--text,#eee);margin-bottom:16px;text-align:center;">' + titleText + '</div>';
+        if (me) {
+            var pct = me.pct != null ? me.pct : (me.pourcentage != null ? me.pourcentage : 0);
+            var count = tab === 'app' ? (me.niveauxCompletes||me.niveaux||0) : (me.appsCompletes||me.apps||0);
+            var total = tab === 'app' ? (me.totalNiveaux||0) : (me.totalPossibleNiveaux||0);
+            var label = tab === 'app' ? 'niveaux' : 'apps';
+            var prog = total > 0 ? count+'/'+total+' '+label : count+' '+label;
+            html += '<div style="background:rgba(34,214,138,0.08);border:1px solid rgba(34,214,138,0.3);border-radius:12px;padding:16px;margin-bottom:16px;display:flex;justify-content:space-around;text-align:center;">'
+              +'<div><div style="font-size:1.3rem;font-weight:800;color:var(--accent,#22d68a);">#'+me.rang+'</div><div style="font-size:0.7rem;color:var(--text2,#999);">RANG</div></div>'
+              +'<div><div style="font-size:1.3rem;font-weight:800;color:var(--text,#eee);">'+me.totalPoints+'</div><div style="font-size:0.7rem;color:var(--text2,#999);">POINTS</div></div>'
+              +'<div><div style="font-size:1.3rem;font-weight:800;color:'+(pct>=80?'#22d68a':pct>=50?'#ff8a3d':'#ff4060')+';">'+pct+'%</div><div style="font-size:0.7rem;color:var(--text2,#999);">RÉUSSITE</div></div>'
+              +'<div><div style="font-size:1.3rem;font-weight:800;color:var(--text2,#999);">'+prog+'</div><div style="font-size:0.7rem;color:var(--text2,#999);">PROGRESSION</div></div></div>';
+        }
+        var medals = ['🥇','🥈','🥉'];
+        html += '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;"><tr style="border-bottom:1px solid var(--border,#333);"><th style="text-align:left;padding:8px 4px;color:var(--text2,#999);font-size:0.72rem;">#</th><th style="text-align:left;padding:8px 4px;color:var(--text2,#999);font-size:0.72rem;">Élève</th><th style="text-align:right;padding:8px 4px;color:var(--text2,#999);font-size:0.72rem;">Pts</th><th style="text-align:right;padding:8px 4px;color:var(--text2,#999);font-size:0.72rem;">%</th><th style="text-align:right;padding:8px 4px;color:var(--text2,#999);font-size:0.72rem;">Temps</th></tr>';
+        data.forEach(function(row) {
+            var r=row.rang||0, name=row.email.split('@')[0].split(/[._-]/).map(function(w){return w.charAt(0).toUpperCase()+w.slice(1)}).join(' ');
+            var p2=row.pct!=null?row.pct:(row.pourcentage!=null?row.pourcentage:0), temps=row.totalTemps||row.totalTime||0, isMe=row.email===myEmail;
+            var pC=p2>=80?'#22d68a':p2>=50?'#ff8a3d':'#ff4060', tStr='—';
+            if(temps>0){var m=Math.floor(temps/60),sec=temps%60;tStr=m>0?m+'m'+String(sec).padStart(2,'0')+'s':sec+'s';}
+            html+='<tr style="border-bottom:1px solid rgba(255,255,255,0.03);background:'+(isMe?'rgba(34,214,138,0.08)':'transparent')+';"><td style="padding:8px 4px;font-weight:700;color:var(--text,#eee);">'+(r<=3?medals[r-1]:r)+'</td><td style="padding:8px 4px;color:var(--text,#eee);'+(isMe?'font-weight:800;color:var(--accent,#22d68a);':'')+'">'+name+'</td><td style="padding:8px 4px;text-align:right;font-weight:700;color:var(--accent,#22d68a);">'+row.totalPoints+'</td><td style="padding:8px 4px;text-align:right;font-weight:700;color:'+pC+';">'+p2+'%</td><td style="padding:8px 4px;text-align:right;color:var(--text2,#999);font-family:monospace;font-size:0.78rem;">'+tStr+'</td></tr>';
+        });
+        html += '</table>';
+        content.innerHTML = html;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() { showEmailModal(); });
+    </script>
+
+    <!-- ============================================================ -->
+    <!-- APPLICATION REACT                                            -->
+    <!-- ============================================================ -->
     <script type="text/babel" data-type="module">
-        import React, { useState, useMemo } from 'react';
+        import React, { useState, useMemo, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
 
-        // --- DONNÉES DES EXERCICES ---
+        // --- DONNÉES DES EXERCICES (avec indices) ---
         const analysisExercises = [
             {
                 id: 1,
@@ -53,9 +345,9 @@
                     reclamations: "Toute réclamation doit être introduite par écrit dans les 5 jours suivant la livraison."
                 },
                 questions: [
-                    { id: 1, text: "Quelles sont les conditions de livraison ? Explique.", correctAnswer: "Franco (gratuit) si la commande est ≥ 75 €. Sinon, 6,50 € de frais de port. Délai : 24-48h." },
-                    { id: 2, text: "Une école commande pour 60 € de matériel. Quel sera le montant des frais de livraison ?", correctAnswer: "6,50 € car le montant est inférieur au seuil de 75 €." },
-                    { id: 3, text: "Un client paie sa facture dès réception. De quelle réduction peut-il bénéficier ?", correctAnswer: "Un escompte de 3% (paiement au grand comptant)." }
+                    { id: 1, text: "Quelles sont les conditions de livraison ? Explique.", correctAnswer: "Franco (gratuit) si la commande est ≥ 75 €. Sinon, 6,50 € de frais de port. Délai : 24-48h.", hint: "💡 Indice : Relis la section « Livraison ». Il y a deux cas possibles selon un seuil de montant. N'oublie pas le délai !" },
+                    { id: 2, text: "Une école commande pour 60 € de matériel. Quel sera le montant des frais de livraison ?", correctAnswer: "6,50 € car le montant est inférieur au seuil de 75 €.", hint: "💡 Indice : Compare le montant de 60 € avec le seuil de gratuité. Que se passe-t-il quand on est EN DESSOUS du seuil ?" },
+                    { id: 3, text: "Un client paie sa facture dès réception. De quelle réduction peut-il bénéficier ?", correctAnswer: "Un escompte de 3% (paiement au grand comptant).", hint: "💡 Indice : Relis la section « Réductions ». Il y a deux types de réductions. Laquelle concerne un paiement immédiat ?" }
                 ]
             },
             {
@@ -71,9 +363,9 @@
                     reclamations: "Signalement des avaries de transport endéans les 48 heures."
                 },
                 questions: [
-                    { id: 1, text: "À partir de quel montant la livraison devient-elle gratuite ?", correctAnswer: "À partir de 150 € d'achat." },
-                    { id: 2, text: "Quelle est l'échéance de paiement pour un client professionnel ?", correctAnswer: "30 jours après la date de la facture." },
-                    { id: 3, text: "Un client paie le 5ème jour. Quel avantage financier obtient-il ?", correctAnswer: "Un escompte de 1% (car paiement effectué sous 10 jours)." }
+                    { id: 1, text: "À partir de quel montant la livraison devient-elle gratuite ?", correctAnswer: "À partir de 150 € d'achat.", hint: "💡 Indice : Cherche l'expression « Franco de port » dans les conditions de livraison. Elle indique le seuil." },
+                    { id: 2, text: "Quelle est l'échéance de paiement pour un client professionnel ?", correctAnswer: "30 jours après la date de la facture.", hint: "💡 Indice : Relis la section « Paiement ». Il y a des conditions différentes pour les particuliers et les professionnels." },
+                    { id: 3, text: "Un client paie le 5ème jour. Quel avantage financier obtient-il ?", correctAnswer: "Un escompte de 1% (car paiement effectué sous 10 jours).", hint: "💡 Indice : 5 jours, c'est moins de 10 jours. Regarde la section « Réductions » pour voir quel avantage est lié à un paiement rapide." }
                 ]
             }
         ];
@@ -88,7 +380,14 @@
                 remiseRate: 10,
                 remiseThreshold: 300,
                 escompteRate: 2,
-                escompteDays: 8
+                escompteDays: 8,
+                hints: {
+                    gross: "💡 Prix brut = quantité × prix unitaire",
+                    remise: "💡 La remise s'applique-t-elle ? Compare le prix brut avec le seuil. Si oui : prix brut × taux de remise",
+                    netCom: "💡 Net commercial = Prix brut − Remise",
+                    escompte: "💡 Escompte = Net commercial × taux d'escompte",
+                    final: "💡 Net à payer = Net commercial − Escompte"
+                }
             },
             {
                 id: 2,
@@ -99,23 +398,78 @@
                 remiseRate: 5,
                 remiseThreshold: 1000,
                 escompteRate: 3,
-                escompteDays: 5
+                escompteDays: 5,
+                hints: {
+                    gross: "💡 Prix brut = quantité × prix unitaire",
+                    remise: "💡 La remise s'applique-t-elle ? Compare le prix brut avec le seuil. Si oui : prix brut × taux de remise",
+                    netCom: "💡 Net commercial = Prix brut − Remise",
+                    escompte: "💡 Escompte = Net commercial × taux d'escompte",
+                    final: "💡 Net à payer = Net commercial − Escompte"
+                }
             }
         ];
 
-        // --- COMPOSANTS ---
-
-        const AnalysisExercise = ({ data }) => {
+        // =============================================================
+        // COMPOSANT : Exercice d'Analyse (CGV) — Système 2 tentatives
+        // =============================================================
+        const AnalysisExercise = ({ data, exerciseIndex }) => {
+            // attempts[questionId] = nombre de tentatives (0, 1, 2)
+            const [attempts, setAttempts] = useState({});
             const [userAnswers, setUserAnswers] = useState({});
-            const [submitted, setSubmitted] = useState({});
+            // status[questionId] = 'hint' | 'done'
+            const [status, setStatus] = useState({});
+            const [allDone, setAllDone] = useState(false);
+            const timerStarted = useRef(false);
 
-            const toggleSubmit = (id) => setSubmitted(p => ({ ...p, [id]: !p[id] }));
+            useEffect(() => {
+                if (!timerStarted.current && window.APP && !window.APP.completedExercises.includes(exerciseIndex)) {
+                    window.startExerciseTimer(exerciseIndex);
+                    timerStarted.current = true;
+                }
+            }, [exerciseIndex]);
+
+            const handleSubmit = (qId) => {
+                const currentAttempts = (attempts[qId] || 0) + 1;
+                const newAttempts = { ...attempts, [qId]: currentAttempts };
+                setAttempts(newAttempts);
+
+                if (currentAttempts >= 2) {
+                    // 2ème tentative → montrer la correction
+                    const newStatus = { ...status, [qId]: 'done' };
+                    setStatus(newStatus);
+                    checkAllDone(newStatus, newAttempts);
+                } else {
+                    // 1ère tentative → montrer l'indice, permettre de modifier
+                    setStatus({ ...status, [qId]: 'hint' });
+                }
+            };
+
+            const handleRetry = (qId) => {
+                // L'élève peut modifier sa réponse après l'indice
+                setStatus({ ...status, [qId]: undefined });
+            };
+
+            const checkAllDone = (newStatus, newAttempts) => {
+                if (allDone) return;
+                const allFinished = data.questions.every(q => newStatus[q.id] === 'done');
+                if (allFinished) {
+                    setAllDone(true);
+                    // Points : 1 point par question répondue du premier coup (1 tentative)
+                    // 0.5 point si répondue en 2 tentatives avec texte
+                    // Simplifié : on compte les réponses non-vides
+                    const answeredCount = data.questions.filter(q =>
+                        userAnswers[q.id] && userAnswers[q.id].trim().length > 0
+                    ).length;
+                    window.completeExercise(exerciseIndex, data.title, answeredCount, data.questions.length);
+                }
+            };
 
             return (
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-12 animate-fadeIn">
                     <div className="bg-amber-600 px-6 py-4 text-white flex items-center gap-2">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         <h2 className="text-xl font-bold">{data.title}</h2>
+                        {allDone && <span className="ml-auto text-sm bg-green-500 px-3 py-1 rounded-full">✅ Envoyé</span>}
                     </div>
                     <div className="p-6">
                         <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-6 mb-8">
@@ -130,65 +484,177 @@
                             </div>
                         </div>
                         <div className="space-y-6">
-                            {data.questions.map((q, idx) => (
-                                <div key={q.id} className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                                    <p className="font-bold text-slate-800 mb-3">{idx + 1}. {q.text}</p>
-                                    <textarea
-                                        disabled={submitted[q.id]}
-                                        className="w-full p-4 border-2 border-slate-200 rounded-lg focus:border-amber-500 outline-none text-sm transition-all bg-white"
-                                        rows="3"
-                                        value={userAnswers[q.id] || ''}
-                                        onChange={(e) => setUserAnswers({...userAnswers, [q.id]: e.target.value})}
-                                    />
-                                    <button
-                                        onClick={() => toggleSubmit(q.id)}
-                                        className={`mt-3 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                                            submitted[q.id] ? 'bg-slate-500 text-white' : 'bg-amber-600 text-white hover:bg-amber-700 shadow-md'
-                                        }`}
-                                    >
-                                        {submitted[q.id] ? "Modifier ma réponse" : "Valider et voir la solution"}
-                                    </button>
-                                    {submitted[q.id] && (
-                                        <div className="mt-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-900 text-sm italic animate-fadeIn">
-                                            <strong>Corrigé type :</strong> {q.correctAnswer}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                            {data.questions.map((q, idx) => {
+                                const qAttempts = attempts[q.id] || 0;
+                                const qStatus = status[q.id]; // undefined | 'hint' | 'done'
+                                const isLocked = qStatus === 'done';
+                                const showHint = qStatus === 'hint';
+
+                                return (
+                                    <div key={q.id} className="bg-slate-50 p-5 rounded-xl border border-slate-100">
+                                        <p className="font-bold text-slate-800 mb-3">{idx + 1}. {q.text}</p>
+                                        
+                                        {/* Badge tentatives */}
+                                        {qAttempts > 0 && !isLocked && (
+                                            <div className="mb-2 text-xs text-slate-500">
+                                                Tentative {qAttempts}/2
+                                            </div>
+                                        )}
+
+                                        <textarea
+                                            disabled={isLocked}
+                                            className={`w-full p-4 border-2 rounded-lg text-sm transition-all bg-white ${
+                                                isLocked ? 'border-slate-300 bg-slate-100 text-slate-500' : 
+                                                showHint ? 'border-amber-400 focus:border-amber-500' : 
+                                                'border-slate-200 focus:border-amber-500'
+                                            }`}
+                                            style={{outline: 'none'}}
+                                            rows="3"
+                                            value={userAnswers[q.id] || ''}
+                                            onChange={(e) => setUserAnswers({...userAnswers, [q.id]: e.target.value})}
+                                        />
+
+                                        {/* Boutons d'action */}
+                                        {!isLocked && !showHint && (
+                                            <button
+                                                onClick={() => handleSubmit(q.id)}
+                                                className="mt-3 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-amber-600 text-white hover:bg-amber-700 shadow-md"
+                                            >
+                                                {qAttempts === 0 ? "Valider ma réponse" : "Valider (2ème tentative)"}
+                                            </button>
+                                        )}
+
+                                        {/* Après 1ère tentative : indice + bouton réessayer */}
+                                        {showHint && (
+                                            <div className="animate-fadeIn">
+                                                <div className="mt-4 p-4 bg-amber-50 border-l-4 border-amber-400 text-amber-900 text-sm rounded-r-lg">
+                                                    <strong>Pas tout à fait !</strong> Voici un indice pour t'aider :
+                                                    <p className="mt-2 italic">{q.hint}</p>
+                                                </div>
+                                                <div className="flex gap-3 mt-3">
+                                                    <button
+                                                        onClick={() => handleRetry(q.id)}
+                                                        className="px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-md"
+                                                    >
+                                                        ✏️ Modifier et réessayer
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleSubmit(q.id)}
+                                                        className="px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-amber-600 text-white hover:bg-amber-700 shadow-md"
+                                                    >
+                                                        Valider quand même
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Après 2 tentatives : correction */}
+                                        {isLocked && (
+                                            <div className="mt-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-900 text-sm italic animate-fadeIn">
+                                                <strong>✅ Corrigé type :</strong> {q.correctAnswer}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
             );
         };
 
-        const CalculationExercise = ({ data }) => {
+        // =============================================================
+        // COMPOSANT : Exercice de Calcul — Système 2 tentatives
+        // =============================================================
+        const CalculationExercise = ({ data, exerciseIndex }) => {
             const [inputs, setInputs] = useState({ gross: '', remise: '', netCom: '', escompte: '', final: '' });
-            const [validated, setValidated] = useState(false);
+            const [attempt, setAttempt] = useState(0); // 0 = pas encore validé, 1 = 1ère tentative, 2 = final
+            const [fieldErrors, setFieldErrors] = useState({}); // {fieldKey: true/false} pour marquer les erreurs
+            const timerStarted = useRef(false);
+            const tracked = useRef(false);
+
+            useEffect(() => {
+                if (!timerStarted.current && window.APP && !window.APP.completedExercises.includes(exerciseIndex)) {
+                    window.startExerciseTimer(exerciseIndex);
+                    timerStarted.current = true;
+                }
+            }, [exerciseIndex]);
 
             const calcs = useMemo(() => {
                 const gross = data.items.reduce((acc, i) => acc + (i.quantity * i.unitPrice), 0);
                 const remise = gross > data.remiseThreshold ? (gross * data.remiseRate / 100) : 0;
                 const netCom = gross - remise;
                 const escompte = (netCom * data.escompteRate / 100);
-                const final = netCom - escompte;
-                return { gross, remise, netCom, escompte, final };
+                const finalVal = netCom - escompte;
+                return { gross, remise, netCom, escompte, final: finalVal };
             }, [data]);
 
-            const checkStyle = (field) => {
-                if (!validated) return "border-slate-200 focus:border-indigo-500";
-                const userVal = parseFloat(inputs[field].replace(',', '.'));
-                return Math.abs(userVal - calcs[field]) < 0.05 
-                    ? "border-green-500 bg-green-50 text-green-700 font-bold" 
-                    : "border-red-500 bg-red-50 text-red-700 font-bold";
+            const format = (v) => new Intl.NumberFormat('fr-BE', { style: 'currency', currency: 'EUR' }).format(v);
+
+            const isFieldCorrect = (field) => {
+                const userVal = parseFloat((inputs[field] || '').replace(',', '.'));
+                return !isNaN(userVal) && Math.abs(userVal - calcs[field]) < 0.05;
             };
 
-            const format = (v) => new Intl.NumberFormat('fr-BE', { style: 'currency', currency: 'EUR' }).format(v);
+            const getFieldStyle = (field) => {
+                if (attempt === 0) return "border-slate-200 focus:border-indigo-500";
+                if (isFieldCorrect(field)) return "border-green-500 bg-green-50 text-green-700 font-bold";
+                return "border-red-500 bg-red-50 text-red-700 font-bold";
+            };
+
+            const handleValidate = () => {
+                const fields = ['gross', 'remise', 'netCom', 'escompte', 'final'];
+                const errors = {};
+                fields.forEach(f => { errors[f] = !isFieldCorrect(f); });
+                setFieldErrors(errors);
+
+                const allCorrect = fields.every(f => isFieldCorrect(f));
+
+                if (attempt === 0) {
+                    if (allCorrect) {
+                        // Tout bon du premier coup !
+                        setAttempt(2);
+                        if (!tracked.current) {
+                            window.completeExercise(exerciseIndex, data.title, 5, 5);
+                            tracked.current = true;
+                        }
+                    } else {
+                        // 1ère tentative avec erreurs → montrer indices
+                        setAttempt(1);
+                    }
+                } else if (attempt === 1) {
+                    // 2ème tentative → montrer les solutions
+                    setAttempt(2);
+                    if (!tracked.current) {
+                        let correctCount = 0;
+                        fields.forEach(f => { if (isFieldCorrect(f)) correctCount++; });
+                        window.completeExercise(exerciseIndex, data.title, correctCount, 5);
+                        tracked.current = true;
+                    }
+                }
+            };
+
+            const handleReset = () => {
+                setInputs({ gross: '', remise: '', netCom: '', escompte: '', final: '' });
+                setAttempt(0);
+                setFieldErrors({});
+            };
+
+            const fields = [
+                {key: 'gross', label: 'Prix Brut'},
+                {key: 'remise', label: `Remise (${data.remiseRate}%)`},
+                {key: 'netCom', label: 'Net Commercial'},
+                {key: 'escompte', label: `Escompte (${data.escompteRate}%)`},
+                {key: 'final', label: 'NET À PAYER'}
+            ];
 
             return (
                 <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden mb-12 animate-fadeIn">
                     <div className="bg-indigo-700 px-6 py-4 text-white flex items-center gap-2">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                         <h2 className="text-xl font-bold">{data.title}</h2>
+                        {attempt > 0 && <span className="ml-auto text-xs bg-slate-600 px-2 py-1 rounded-full">Tentative {Math.min(attempt, 2)}/2</span>}
+                        {tracked.current && <span className="ml-2 text-sm bg-green-500 px-3 py-1 rounded-full">✅ Envoyé</span>}
                     </div>
                     <div className="p-6">
                         <div className="bg-slate-800 text-white p-6 rounded-xl mb-8 shadow-inner">
@@ -198,7 +664,7 @@
                                 <p className="font-semibold text-slate-100">{data.items[0].quantity} x {data.items[0].label} à {format(data.items[0].unitPrice)}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4 text-sm text-slate-400 italic">
-                                <p>• Remise : {data.remiseRate}% (si > {format(data.remiseThreshold)})</p>
+                                <p>• Remise : {data.remiseRate}% (si &gt; {format(data.remiseThreshold)})</p>
                                 <p>• Escompte : {data.escompteRate}% (paiement comptant)</p>
                             </div>
                         </div>
@@ -208,52 +674,103 @@
                                     <tr>
                                         <th className="p-4">Étape de calcul</th>
                                         <th className="p-4 text-right">Votre résultat (€)</th>
-                                        {validated && <th className="p-4 text-right bg-indigo-50 text-indigo-700">Solution</th>}
+                                        {attempt >= 1 && <th className="p-4 text-center w-10">✓/✗</th>}
+                                        {attempt === 1 && <th className="p-4 text-left bg-amber-50 text-amber-700">Indice</th>}
+                                        {attempt === 2 && <th className="p-4 text-right bg-indigo-50 text-indigo-700">Solution</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {[
-                                        {key: 'gross', label: 'Prix Brut'},
-                                        {key: 'remise', label: `Remise (${data.remiseRate}%)`},
-                                        {key: 'netCom', label: 'Net Commercial'},
-                                        {key: 'escompte', label: `Escompte (${data.escompteRate}%)`},
-                                        {key: 'final', label: 'NET À PAYER'}
-                                    ].map((row) => (
-                                        <tr key={row.key} className={row.key === 'final' ? 'bg-indigo-50/50 font-black' : ''}>
-                                            <td className="p-4 text-sm text-slate-700">{row.label}</td>
-                                            <td className="p-4 text-right">
-                                                <input
-                                                    type="text"
-                                                    className={`w-32 p-2 text-right border-2 rounded-lg outline-none transition-all ${checkStyle(row.key)}`}
-                                                    value={inputs[row.key]}
-                                                    placeholder="0,00"
-                                                    onChange={e => setInputs({...inputs, [row.key]: e.target.value})}
-                                                    disabled={validated}
-                                                />
-                                            </td>
-                                            {validated && <td className="p-4 text-right text-sm font-bold text-indigo-900 bg-indigo-50">{format(calcs[row.key])}</td>}
-                                        </tr>
-                                    ))}
+                                    {fields.map((row) => {
+                                        const correct = attempt >= 1 && isFieldCorrect(row.key);
+                                        const wrong = attempt >= 1 && !isFieldCorrect(row.key);
+                                        return (
+                                            <tr key={row.key} className={row.key === 'final' ? 'bg-indigo-50/50 font-black' : ''}>
+                                                <td className="p-4 text-sm text-slate-700">{row.label}</td>
+                                                <td className="p-4 text-right">
+                                                    <input
+                                                        type="text"
+                                                        className={`w-32 p-2 text-right border-2 rounded-lg outline-none transition-all ${getFieldStyle(row.key)}`}
+                                                        value={inputs[row.key]}
+                                                        placeholder="0,00"
+                                                        onChange={e => setInputs({...inputs, [row.key]: e.target.value})}
+                                                        disabled={attempt === 2 || (attempt >= 1 && correct)}
+                                                    />
+                                                </td>
+                                                {attempt >= 1 && (
+                                                    <td className="p-4 text-center text-lg">
+                                                        {correct ? '✅' : '❌'}
+                                                    </td>
+                                                )}
+                                                {attempt === 1 && (
+                                                    <td className="p-4 text-sm bg-amber-50 text-amber-800 italic">
+                                                        {wrong ? data.hints[row.key] : '—'}
+                                                    </td>
+                                                )}
+                                                {attempt === 2 && (
+                                                    <td className="p-4 text-right text-sm font-bold text-indigo-900 bg-indigo-50">
+                                                        {format(calcs[row.key])}
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Message de feedback */}
+                        {attempt === 1 && (
+                            <div className="mb-6 p-4 bg-amber-50 border-l-4 border-amber-400 text-amber-900 text-sm rounded-r-lg animate-fadeIn">
+                                <strong>🔄 Presque !</strong> Certaines réponses ne sont pas correctes. Consulte les indices dans le tableau et corrige les champs en rouge. Tu as encore une tentative.
+                            </div>
+                        )}
+                        {attempt === 2 && (
+                            <div className="mb-6 p-4 bg-indigo-50 border-l-4 border-indigo-500 text-indigo-900 text-sm rounded-r-lg animate-fadeIn">
+                                <strong>📊 Résultats finaux.</strong> Les solutions sont affichées dans la dernière colonne. Compare avec tes réponses pour comprendre les erreurs.
+                            </div>
+                        )}
+
                         <div className="flex flex-col items-center gap-4">
-                            <button
-                                onClick={() => setValidated(!validated)}
-                                className={`px-10 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-xl transition-all active:scale-95 ${
-                                    validated ? 'bg-slate-200 text-slate-700' : 'bg-indigo-700 text-white hover:bg-indigo-800 ring-4 ring-indigo-100'
-                                }`}
-                            >
-                                {validated ? "Recommencer l'exercice" : "Valider mes résultats"}
-                            </button>
+                            {attempt < 2 && (
+                                <button
+                                    onClick={handleValidate}
+                                    className="px-10 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-xl transition-all active:scale-95 bg-indigo-700 text-white hover:bg-indigo-800 ring-4 ring-indigo-100"
+                                >
+                                    {attempt === 0 ? "Valider mes résultats" : "Valider (2ème tentative)"}
+                                </button>
+                            )}
+                            {attempt === 2 && (
+                                <button
+                                    onClick={handleReset}
+                                    className="px-10 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-xl transition-all active:scale-95 bg-slate-200 text-slate-700"
+                                >
+                                    Recommencer l'exercice
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
             );
         };
 
+        // =============================================================
+        // APP PRINCIPALE
+        // =============================================================
         const App = () => {
             const [activeTab, setActiveTab] = useState('analysis');
+            const [userEmail, setUserEmail] = useState('');
+            const [userClasse, setUserClasse] = useState('');
+
+            useEffect(() => {
+                window._onEmailValidated = (email, classe) => {
+                    setUserEmail(email);
+                    setUserClasse(classe);
+                };
+                if (window.APP && window.APP.email) {
+                    setUserEmail(window.APP.email);
+                    setUserClasse(window.APP.classe);
+                }
+            }, []);
 
             return (
                 <div className="min-h-screen pb-12">
@@ -261,25 +778,27 @@
                         <div className="max-w-5xl mx-auto text-center">
                             <h1 className="text-4xl font-extrabold mb-2 uppercase tracking-tight">Comptabilité 4e : Fiche 5</h1>
                             <p className="text-indigo-300 italic text-xl">Analyse des conditions de vente et calculs de prix net</p>
+                            {userEmail && (
+                                <div className="mt-4 flex items-center justify-center gap-4 text-sm flex-wrap">
+                                    <span className="bg-slate-700 px-3 py-1 rounded-full">👤 {userEmail}</span>
+                                    {userClasse && <span className="bg-slate-700 px-3 py-1 rounded-full">🏫 {userClasse}</span>}
+                                    <span id="globalTimer" style={{fontFamily: "'Space Mono', monospace", fontSize: '0.85rem', color: '#a5b4fc', display: 'none'}}>⏱️ 00:00</span>
+                                </div>
+                            )}
                         </div>
                     </header>
 
                     <main className="max-w-4xl mx-auto px-4">
+                        <div className="flex justify-center gap-3 mb-6">
+                            <button onClick={() => window.openLB('app')} className="px-5 py-2.5 rounded-xl border-2 font-bold transition-all hover:scale-105" style={{borderColor:'var(--accent,#22d68a)',color:'var(--accent,#22d68a)',background:'transparent'}}>🏆 Classement</button>
+                            <button onClick={() => window.openLB('global')} className="px-5 py-2.5 rounded-xl border-2 font-bold transition-all hover:scale-105" style={{borderColor:'var(--orange,#ff8a3d)',color:'var(--orange,#ff8a3d)',background:'transparent'}}>🌍 Général</button>
+                        </div>
+
                         <div className="flex justify-center gap-4 mb-10">
-                            <button
-                                onClick={() => setActiveTab('analysis')}
-                                className={`px-10 py-4 rounded-full font-bold shadow-lg transition-all ${
-                                    activeTab === 'analysis' ? 'bg-amber-600 text-white scale-105' : 'bg-white text-slate-600 hover:bg-slate-50'
-                                }`}
-                            >
+                            <button onClick={() => setActiveTab('analysis')} className={`px-10 py-4 rounded-full font-bold shadow-lg transition-all ${activeTab === 'analysis' ? 'bg-amber-600 text-white scale-105' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
                                 🔍 Analyse des CGV
                             </button>
-                            <button
-                                onClick={() => setActiveTab('calculation')}
-                                className={`px-10 py-4 rounded-full font-bold shadow-lg transition-all ${
-                                    activeTab === 'calculation' ? 'bg-indigo-700 text-white scale-105' : 'bg-white text-slate-600 hover:bg-slate-50'
-                                }`}
-                            >
+                            <button onClick={() => setActiveTab('calculation')} className={`px-10 py-4 rounded-full font-bold shadow-lg transition-all ${activeTab === 'calculation' ? 'bg-indigo-700 text-white scale-105' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
                                 🧮 Exercices de calcul
                             </button>
                         </div>
@@ -287,11 +806,11 @@
                         <div className="animate-fadeIn">
                             {activeTab === 'analysis' ? (
                                 <div className="space-y-6">
-                                    {analysisExercises.map(ex => <AnalysisExercise key={ex.id} data={ex} />)}
+                                    {analysisExercises.map((ex, idx) => <AnalysisExercise key={ex.id} data={ex} exerciseIndex={idx} />)}
                                 </div>
                             ) : (
                                 <div className="space-y-6">
-                                    {calculationExercises.map(ex => <CalculationExercise key={ex.id} data={ex} />)}
+                                    {calculationExercises.map((ex, idx) => <CalculationExercise key={ex.id} data={ex} exerciseIndex={idx + analysisExercises.length} />)}
                                 </div>
                             )}
                         </div>
@@ -300,12 +819,15 @@
                     <footer className="mt-20 text-center text-slate-400 text-sm border-t border-slate-200 pt-8 pb-4">
                         <p>© Institut Saint-Luc - Cours de Comptabilité 4e Technique</p>
                         <p className="mt-2 text-xs">Propulsé par React 18 & Babel Standalone (No-Build Architecture)</p>
+                        <div className="flex justify-center gap-3 mt-4">
+                            <button onClick={() => window.openLB('app')} className="px-4 py-2 rounded-xl border-2 font-bold text-sm transition-all hover:scale-105" style={{borderColor:'var(--accent,#22d68a)',color:'var(--accent,#22d68a)',background:'transparent'}}>🏆 Classement</button>
+                            <button onClick={() => window.openLB('global')} className="px-4 py-2 rounded-xl border-2 font-bold text-sm transition-all hover:scale-105" style={{borderColor:'var(--orange,#ff8a3d)',color:'var(--orange,#ff8a3d)',background:'transparent'}}>🌍 Général</button>
+                        </div>
                     </footer>
                 </div>
             );
         };
 
-        // Montage de l'application
         const container = document.getElementById('root');
         if (container) {
             const root = createRoot(container);
